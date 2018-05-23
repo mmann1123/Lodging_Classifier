@@ -33,7 +33,7 @@ Label2Folder = function(database,image_path,image_ext='.jpg',out_image_path){
     # create output folder 
     destination = file.path(out_image_path, database_label)
     print(paste('Files will be moved to:',destination))
-    dir.create( destination, showWarnings = F)
+    dir.create( destination, showWarnings = F, recursive = T)
     
     # get files names in database
     database_image = basename(in_data[,database_image_col_name])
@@ -56,20 +56,18 @@ Label2Folder = function(database,image_path,image_ext='.jpg',out_image_path){
           # copy file 
           try(file.copy(from = file.path(image_path,file_to_process), 
                     to = file.path(out_image_path,database_label,label,file_name_to_process),overwrite = T))
-          
         }
-      
     }
 }
 
 # Example 
-# image_path = '/media/ssd/Lodging_Classifier/aoi/'
-# image_ext = '.jpg'
-# database = '/media/ssd/Lodging_Classifier/cropmonitor_merged.rds'
-# database_label = 'Lodging'
-# database_image_col_name = 'image'
-# out_image_path = '/media/ssd/Lodging_Classifier/sorted'
-#Label2Folder(database,image_path,image_ext='.jpg',out_image_path)
+image_path = '/media/ssd/Lodging_Classifier/Data/thumbs/'
+image_ext = '.jpg'
+database = '/media/ssd/Lodging_Classifier/Data/cropmonitor_merged_updated_images.rds'
+database_label = 'Soil'
+database_image_col_name = 'image'
+out_image_path = '/media/ssd/Lodging_Classifier/testing'
+Label2Folder(database,image_path,image_ext='.jpg',out_image_path)
   
 
 

@@ -27,6 +27,7 @@
 
 
 Folder2Label = function(database,image_path,image_ext='.jpg',out_image_path){
+    require(dplyr)
     # read in database
     database_ext = strsplit(database,".", fixed = TRUE)[[1]][2]
     if(database_ext =='rds' | database_ext == 'RDS') in_data = readRDS(database) else
@@ -47,15 +48,22 @@ Folder2Label = function(database,image_path,image_ext='.jpg',out_image_path){
     # create database columns with correct names 
     in_data[ unique(column)] = NA
      
+    # create image name in in_data
+    in_data$file = basename(in_data$image)
+    
+    label_data = data.frame(column=column, label= label, file=file)
+    
     # for ecah unique column name add appropriate labels
     for(column_name in unique(column)){
         
-        # find file location in database (returns row# in files_to_process that matches database image location) use 
-        # e.g. label[match_order] file[match_order]
-        match_order = match( basename(in_data$image),file[column==column_name] )
-        
-        # replace values of _sorted column with appropriate label
-        in_data[,column_name] = label[match_order]
+        in_data = left_join(in_data, label_data, by = 'file')
+      
+        # # find file location in database (returns row# in files_to_process that matches database image location) use 
+        # # e.g. label[match_order] file[match_order]
+        # match_order = match( basename(in_data$image), file[column==column_name] )
+        # 
+        # # replace values of _sorted column with appropriate label
+        # in_data[,column_name] = label[match_order]
         
     }
     return(in_data)
@@ -63,13 +71,22 @@ Folder2Label = function(database,image_path,image_ext='.jpg',out_image_path){
   
   
 # Example 
-# image_ext = '.jpg'
-# database = '/media/ssd/Lodging_Classifier/cropmonitor_merged.rds'
-# out_image_path = '/media/ssd/Lodging_Classifier/sorted'
-# in_data = Folder2Label(database,image_path,image_ext='.jpg',out_image_path)
-# saveRDS(in_data,'/media/ssd/Lodging_Classifier/cropmonitor_merged_updated_images.rds')
-# 
-# table(in_data$Lodging)
+image_ext = '.jpg'
+database = '/media/ssd/Lodging_Classifier/Data/cropmonitor_merged_updated_images.rds'
+out_image_path = '/media/ssd/Lodging_Classifier/Data/sorted/'
+in_data = Folder2Label(database,image_path,image_ext='.jpg',out_image_path)
+
+table(in_data$Lodging)
+table(in_data$Soil)
+table(in_data$OtherIssues)
+table(in_data$Harvest)
+
+library(imager)
+file2plot = basename(in_data[in_data$Soil == 'False' & !is.na(in_data$Soil),'image' ]  )
+plot(load.image((paste0('/media/ssd/Lodging_Classifier/Data/sorted/Soil/True/',file2plot[50]))))
+
+saveRDS(in_data,'/media/ssd/Lodging_Classifier/Data/cropmonitor_merged_updated_images.rds')
+
 
 
 
