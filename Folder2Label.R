@@ -27,7 +27,7 @@
 
 
 Folder2Label = function(database,image_path,image_ext='.jpg',out_image_path){
-    require(dplyr)
+     require(tidyr)
     # read in database
     database_ext = strsplit(database,".", fixed = TRUE)[[1]][2]
     if(database_ext =='rds' | database_ext == 'RDS') in_data = readRDS(database) else
@@ -45,6 +45,14 @@ Folder2Label = function(database,image_path,image_ext='.jpg',out_image_path){
     label = sapply(files_to_process, grab_last_dir,USE.NAMES = F)
     file = basename(files_to_process)
     
+    
+    lable_tb = tibble(column = sapply(files_to_process, grab_2ndlast_dir,USE.NAMES = F),
+           label = sapply(files_to_process, grab_last_dir,USE.NAMES = F),file = basename(files_to_process),files_to_process=files_to_process,)
+    
+    lable_tb = lable_tb %>%  spread(column, label)
+    
+    
+    
     # create database columns with correct names 
     in_data[ unique(column)] = NA
      
@@ -60,10 +68,10 @@ Folder2Label = function(database,image_path,image_ext='.jpg',out_image_path){
       
         # # find file location in database (returns row# in files_to_process that matches database image location) use 
         # # e.g. label[match_order] file[match_order]
-        # match_order = match( basename(in_data$image), file[column==column_name] )
-        # 
-        # # replace values of _sorted column with appropriate label
-        # in_data[,column_name] = label[match_order]
+        match_order = match( basename(in_data$image), file[column==column_name] )
+
+        # replace values of _sorted column with appropriate label
+        in_data[,column_name] = label[match_order]
         
     }
     return(in_data)
