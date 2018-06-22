@@ -27,67 +27,51 @@
 
 
 Folder2Label = function(database,image_path,image_ext='.jpg',out_image_path){
-     require(tidyr)
-    # read in database
-    database_ext = strsplit(database,".", fixed = TRUE)[[1]][2]
-    if(database_ext =='rds' | database_ext == 'RDS') in_data = readRDS(database) else
-      if(database_ext =='dta' ){require(readstata13); in_data = read.dta13(database)} else
-        print('database type unknown please provide dta or rds file')
-    
+  require(tidyr)
+  require(dplyr)
+  # read in database
+  database_ext = strsplit(database,".", fixed = TRUE)[[1]][2]
+  if(database_ext =='rds' | database_ext == 'RDS') in_data = readRDS(database) else
+    if(database_ext =='dta' ){require(readstata13); in_data = read.dta13(database)} else
+      print('database type unknown please provide dta or rds file')
+  
+  # add file name column to join on 
+  in_data$file_name =  basename(in_data$image )
+  
+  
     # find images to be sorted
-    files_to_process = list.files(out_image_path,pattern = image_ext,recursive = T, full.names = T)
-    
-    # split path into column name for database, label, and file name
-    grab_last_dir = function(x) unlist(strsplit(dirname(x),'/'))[length(unlist(strsplit(dirname(x),'/')))]
-    grab_2ndlast_dir = function(x) unlist(strsplit(dirname(x),'/'))[length(unlist(strsplit(dirname(x),'/')))-1]
-    
-    column = sapply(files_to_process, grab_2ndlast_dir,USE.NAMES = F)
-    label = sapply(files_to_process, grab_last_dir,USE.NAMES = F)
-    file = basename(files_to_process)
-    
-    
-    lable_tb = tibble(column = sapply(files_to_process, grab_2ndlast_dir,USE.NAMES = F),
-           label = sapply(files_to_process, grab_last_dir,USE.NAMES = F),file = basename(files_to_process),files_to_process=files_to_process,)
-    
-    lable_tb = lable_tb %>%  spread(column, label)
-    
-    
-    
-    # create database columns with correct names 
-    in_data[ unique(column)] = NA
-     
-    # create image name in in_data
-    in_data$file = basename(in_data$image)
-    
-    label_data = data.frame(column=column, label= label, file=file)
-    
-    # for ecah unique column name add appropriate labels
-    for(column_name in unique(column)){
-        
-        in_data = left_join(in_data, label_data, by = 'file')
-      
-        # # find file location in database (returns row# in files_to_process that matches database image location) use 
-        # # e.g. label[match_order] file[match_order]
-        match_order = match( basename(in_data$image), file[column==column_name] )
+  file_path = list.files(out_image_path,pattern = image_ext,recursive = T, full.names = T)
 
-        # replace values of _sorted column with appropriate label
-        in_data[,column_name] = label[match_order]
-        
-    }
-    return(in_data)
+  
+  # split path into column name for database, label, and file name
+  grab_last_dir = function(x) unlist(strsplit(dirname(x),'/'))[length(unlist(strsplit(dirname(x),'/')))]
+  grab_2ndlast_dir = function(x) unlist(strsplit(dirname(x),'/'))[length(unlist(strsplit(dirname(x),'/')))-1]
+  
+  
+  # create table with all needed data spread labels across columns from folder names
+  label_tb = tibble(column = sapply(file_path, grab_2ndlast_dir,USE.NAMES = F),
+                    label = sapply(file_path, grab_last_dir,USE.NAMES = F),
+                    file_name = basename(file_path),file_path=file_path)
+  label_tb = label_tb %>%  spread(column, label)
+  
+  
+  # join to original data 
+  out_data = left_join(in_data,label_tb, by='file_name')
+  
+  return(out_data)
 } 
-  
-  
-# Example 
+
+
+# Example
 image_ext = '.jpg'
-database = '/media/ssd/Lodging_Classifier/Data/cropmonitor_merged_updated_images.rds'
-out_image_path = '/media/ssd/Lodging_Classifier/Data/sorted/'
+database = 'C:/Users/mmann/Desktop/Lodging_Classifier-master/Lodging_Classifier/Data/cropmonitor_merged.rds'
+out_image_path = 'C:/Users/mmann/Desktop/Lodging_Classifier-master/Lodging_Classifier/Data/sorted'
 in_data = Folder2Label(database,image_path,image_ext='.jpg',out_image_path)
 
 table(in_data$Lodging)
-table(in_data$Soil)
-table(in_data$OtherIssues)
-table(in_data$Harvest)
+table(in_data$Soil.y)
+table(in_data$OtherIssues.y)
+table(in_data$Harvest.y)
 
 library(imager)
 file2plot = basename(in_data[in_data$Soil == 'False' & !is.na(in_data$Soil),'image' ]  )
