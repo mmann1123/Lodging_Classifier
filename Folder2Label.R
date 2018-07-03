@@ -20,13 +20,14 @@
 #' @param database: path and name of RDS or dta file as provided by IFPRI with images where labels will be stored
 #' @param image_ext: extension type of image for example .jpg
 #' @param out_image_path: path of folder where images were sorted for training
+#' @param image_column: column name with all 
 #' @keywords label sort
 #' @export
 #' 
 #' 
 
 
-Folder2Label = function(database,image_path,image_ext='.jpg',out_image_path){
+Folder2Label = function(database,image_path,image_ext='.jpg',out_image_path,image_colum){
   require(tidyr)
   require(dplyr)
   # read in database
@@ -36,7 +37,7 @@ Folder2Label = function(database,image_path,image_ext='.jpg',out_image_path){
       print('database type unknown please provide dta or rds file')
   
   # add file name column to join on 
-  in_data$file_name =  basename(in_data$image )
+  in_data$file_name =  basename(as.character(in_data[,image_column]) )
   
   
     # find images to be sorted
@@ -61,23 +62,23 @@ Folder2Label = function(database,image_path,image_ext='.jpg',out_image_path){
   return(out_data)
 } 
 
+# 
+# # Example
+# image_ext = '.jpg'
+# database = '/media/ssd/Lodging_Classifier/Data/cropmonitor_merged_updated_images.rds'
+# out_image_path = '/media/ssd/Lodging_Classifier/Data/sorted'
+# in_data = Folder2Label(database,image_path,image_ext='.jpg',out_image_path)
+# 
+# table(in_data$Lodging)
+# table(in_data$Soil.y)
+# table(in_data$OtherIssues.y)
+# table(in_data$Harvest.y)
 
-# Example
-image_ext = '.jpg'
-database = 'C:/Users/mmann/Desktop/Lodging_Classifier-master/Lodging_Classifier/Data/cropmonitor_merged.rds'
-out_image_path = 'C:/Users/mmann/Desktop/Lodging_Classifier-master/Lodging_Classifier/Data/sorted'
-in_data = Folder2Label(database,image_path,image_ext='.jpg',out_image_path)
-
-table(in_data$Lodging)
-table(in_data$Soil.y)
-table(in_data$OtherIssues.y)
-table(in_data$Harvest.y)
-
-library(imager)
-file2plot = basename(in_data[in_data$Soil == 'False' & !is.na(in_data$Soil),'image' ]  )
-plot(load.image((paste0('/media/ssd/Lodging_Classifier/Data/sorted/Soil/True/',file2plot[50]))))
-
-saveRDS(in_data,'/media/ssd/Lodging_Classifier/Data/cropmonitor_merged_updated_images.rds')
+# library(imager)
+# file2plot = basename(in_data[in_data$Soil == 'False' & !is.na(in_data$Soil),'image' ]  )
+# plot(load.image((paste0('/media/ssd/Lodging_Classifier/Data/sorted/Soil/True/',file2plot[50]))))
+# 
+# saveRDS(in_data,'/media/ssd/Lodging_Classifier/Data/cropmonitor_merged_updated_images.rds')
 
 
 
