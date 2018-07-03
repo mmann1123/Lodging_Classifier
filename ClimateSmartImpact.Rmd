@@ -1,0 +1,129 @@
+---
+title: "Climate Smart Soil"
+author: "Michael Mann"
+date: "July 2, 2018"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(ggthemes)
+source('./Folder2Label.R')
+
+
+
+
+# Read in soil labels 
+image_ext = '.jpg'
+database = '/home/mmann1123/Dropbox/crop_classifier/data/cropmonitor_merged.rds'
+out_image_path = '/media/ssd/Lodging_Classifier/Data/sorted'
+image_column = 'image'
+in_data = Folder2Label(database,image_path,image_ext='.jpg',out_image_path,image_column)
+in_data$userfield = paste(in_data$uniqueuserid,in_data$uniquecropsiteid,sep='-')
+
+# keep sites with good time series
+plot_data = in_data[in_data$time_series_quality == 'ok',]
+
+# keep sites in koens subset
+subset= readRDS('/home/mmann1123/Dropbox/crop_classifier/data/cropmonitor_subset.rds')
+in_data = in_data[in_data$userfield %in% unique(subset$userfield),]
+
+
+
+```
+
+## Can we see the impacts of early season soil treatment?
+Here I am trying to look at whether we can observe differences in GCC_90 based on early season soil management practices. I created labels for four classes of early season ground cover:
+
+***
+
+**Burnt**
+
+![](/media/ssd/Lodging_Classifier/Data/sorted/Soil_Updated/Burnt/128940-5778e4db-3b35-4839-b6ce-4f0971c70bb2-1479277942199.jpg) 
+
+
+***
+
+**Cleared**
+
+![](/media/ssd/Lodging_Classifier/Data/sorted/Soil_Updated/Cleared/112414-cf1458d1-1123-45e6-a4bf-89ec2a0f36e7-1480321197375.jpg) 
+
+***
+
+
+**Thin Crop Bunches**
+Two classes are made for "bunches". These site look like they are harvested by hand. *We should figure out what exactly they are.* "Thin" bunches tend to be more intermittent, shorter, and often lay flat against the soil. 
+![](/media/ssd/Lodging_Classifier/Data/sorted/Soil_Updated/Crop Bunches Thin/105833-5577fd38-4d07-41a6-b792-574b711454c5-1479798785302.jpg) 
+
+***
+
+**Thick Crop Bunches**
+Thick "bunches" tend to stand upright and have much higher density of standing material. 
+![](/media/ssd/Lodging_Classifier/Data/sorted/Soil_Updated/Crop Bunches Thick/128930-a90404d6-a6a8-4b7d-b2c2-3cfcb095f710-1479360294718.jpg) 
+
+***
+
+**Ground Litter**
+
+![](/media/ssd/Lodging_Classifier/Data/sorted/Soil_Updated/Ground Litter/105820-f953264e-80fd-4372-ac8e-a02296b9f4c2-1480483866760.jpg) 
+
+
+### Differences between groups
+First step is to see if there are differences in the distribution of GCC for each group 
+
+```{r gcc by soils , message=FALSE, warning=FALSE, paged.print=FALSE}
+unique(in_data$Soil_Updated)
+"./Data/sorted/Soil_Updated/Burnt/128940-5778e4db-3b35-4839-b6ce-4f0971c70bb2-1479277942199.jpg"
+
+# assign labels to all sites where soil label is assigned 
+for(label in c( "Ground Litter","Crop Bunches Thick","Crop Bunches Thin" ,"Burnt","Cleared")){
+  in_data$final_soil_class[in_data$userfield %in% unique(in_data[in_data$Soil_Updated==label,'userfield'])] =label
+}
+
+# number of observations per class
+table( in_data$final_soil_class)
+
+ggplot() +geom_boxplot(data=in_data[in_data$final_soil_class!='NA',],aes(x=final_soil_class, y=gcc_90,fill=factor(final_soil_class)))  + 
+    theme_minimal() +theme(axis.text.x = element_text(angle = 90, hjust = 1))+xlab('')
+```
+
+
+### Test 
+
+```{r ttest, echo=FALSE}
+#https://uc-r.github.io/t_test
+cleared = in_data$gcc_90[in_data$final_soil_class=="Cleared"]
+litter = in_data$gcc_90[in_data$final_soil_class=="Ground Litter"]
+
+t.test(litter,cleared, alternative = "two.sided", 
+        paired = F, var.equal = FALSE, conf.level = 0.95)
+
+```
+
+Although not that surprising given the graph we can see that there is a statistically significant difference between GCC values for cleared and ground with litter. 
+
+
+### Maximum GCC values by soil treatment 
+
+Now let's see if there are differences in the maximum GCC-90 value by soil class (going forward this should be run on smoothed data).
+
+
+```{r max gcc by soils , message=FALSE, warning=FALSE, paged.print=FALSE}
+
+max_data = in_data %>% group_by(final_soil_class,userfield) %>%   summarise(`Max GCC_90` = median(gcc_90, na.rm = TRUE))
+
+ggplot() +geom_boxplot(data=max_data[max_data$final_soil_class!='NA',],aes(x=final_soil_class, y=`Max GCC_90`,fill=factor(final_soil_class)))  + 
+    theme_minimal() +theme(axis.text.x = element_text(angle = 90, hjust = 1))+xlab('')
+```
+
+
+
+
+
+## Summary
+
+Looks like we can use this data to evaluate the impact of climate smart data practices on GCC or even NDVI. Clearly more work is needed here but hoping this gets a conversation going. 
